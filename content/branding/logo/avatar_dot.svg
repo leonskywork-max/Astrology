@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  Numen — Avatar B: чистая золотая точка в круге
+  Альтернатива монограмме — для максимально минималистичного варианта
+  640x640 px
+  Цвета: bg #0A0A0A, ring #F5F5F0 @30%, dot #C9A961
+-->
+<svg xmlns="http://www.w3.org/2000/svg" width="640" height="640" viewBox="0 0 640 640">
+  <!-- Background circle -->
+  <circle fill="#0A0A0A" cx="320" cy="320" r="320"/>
+
+  <!-- Thin outer ring (suggesting an orbit) -->
+  <circle fill="none" stroke="#F5F5F0" stroke-opacity="0.3" stroke-width="1" cx="320" cy="320" r="160"/>
+
+  <!-- Central gold dot — the "numen", the divine nod -->
+  <circle fill="#C9A961" cx="320" cy="320" r="36"/>
+</svg>
