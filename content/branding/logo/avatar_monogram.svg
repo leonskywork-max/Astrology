@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  Numen — Avatar A: монограмма N с золотой точкой
+  640x640 px, для аватара канала/бота в Telegram
+  Цвета: bg #0A0A0A, foreground #F5F5F0, accent #C9A961
+  Шрифт: Playfair Display Bold (нужен импорт; для production — сконвертировать в path)
+-->
+<svg xmlns="http://www.w3.org/2000/svg" width="640" height="640" viewBox="0 0 640 640">
+  <defs>
+    <style>
+      @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@900&amp;display=swap');
+      .bg { fill: #0A0A0A; }
+      .n { fill: #F5F5F0; font-family: 'Playfair Display', Georgia, serif; font-weight: 900; }
+      .dot { fill: #C9A961; }
+    </style>
+  </defs>
+
+  <!-- Background circle -->
+  <circle class="bg" cx="320" cy="320" r="320"/>
+
+  <!-- N monogram, optically centered -->
+  <text class="n" x="320" y="430" font-size="420" text-anchor="middle">N</text>
+
+  <!-- Gold accent dot above the N (the "knowing nod" — namesake of Numen) -->
+  <circle class="dot" cx="320" cy="148" r="14"/>
+</svg>

@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  Numen — обложка канала Telegram (1280×640)
+  Слева: крупный wordmark "Numen"
+  Справа: тонкая геометрия — астрологический угол с золотой точкой
+-->
+<svg xmlns="http://www.w3.org/2000/svg" width="1280" height="640" viewBox="0 0 1280 640">
+  <defs>
+    <style>
+      @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700&amp;display=swap');
+      @import url('https://fonts.googleapis.com/css2?family=Inter:wght@500&amp;display=swap');
+      .word { fill: #F5F5F0; font-family: 'Playfair Display', Georgia, serif; font-weight: 700; }
+      .sub { fill: #8A8A85; font-family: 'Inter', system-ui, sans-serif; font-weight: 500; }
+      .accent { fill: #C9A961; }
+      .line { stroke: #F5F5F0; stroke-width: 1.5; fill: none; }
+    </style>
+  </defs>
+
+  <!-- Background -->
+  <rect fill="#0A0A0A" width="1280" height="640"/>
+
+  <!-- Wordmark left -->
+  <text class="word" x="120" y="340" font-size="160" letter-spacing="2">Numen</text>
+
+  <!-- Tagline under wordmark -->
+  <text class="sub" x="124" y="400" font-size="22" letter-spacing="3" text-transform="uppercase">АСТРОЛОГИЯ ТВОЕЙ КАРТЫ — БЕЗ САХАРА</text>
+
+  <!-- Right side: minimalist aspect diagram -->
+  <!-- Two dots and a line between them at an angle -->
+  <line class="line" x1="900" y1="200" x2="1100" y2="440"/>
+  <circle class="accent" cx="900" cy="200" r="8"/>
+  <circle class="accent" cx="1100" cy="440" r="8"/>
+  <!-- Tiny midpoint dot, accent gold -->
+  <circle class="accent" cx="1000" cy="320" r="5" opacity="0.6"/>
+</svg>

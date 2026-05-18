@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  Numen — Avatar C: астрологический угол (аспект) в круге
+  Концепт: две тонкие линии, образующие угол 90° (квадрат, главный аспект напряжения),
+  с золотой точкой в вершине угла.
+  640x640 px
+-->
+<svg xmlns="http://www.w3.org/2000/svg" width="640" height="640" viewBox="0 0 640 640">
+  <!-- Background circle -->
+  <circle fill="#0A0A0A" cx="320" cy="320" r="320"/>
+
+  <!-- Two thin lines forming a 90° aspect, meeting at vertex (320, 380) -->
+  <!-- Line going up-left -->
+  <line x1="320" y1="380" x2="200" y2="200" stroke="#F5F5F0" stroke-width="3" stroke-linecap="round"/>
+  <!-- Line going up-right -->
+  <line x1="320" y1="380" x2="440" y2="200" stroke="#F5F5F0" stroke-width="3" stroke-linecap="round"/>
+
+  <!-- Gold dot at the vertex (the "Numen" — the meaningful point) -->
+  <circle fill="#C9A961" cx="320" cy="380" r="16"/>
+
+  <!-- Tiny dots at the line endpoints (the two "planets" of the aspect) -->
+  <circle fill="#F5F5F0" cx="200" cy="200" r="6"/>
+  <circle fill="#F5F5F0" cx="440" cy="200" r="6"/>
+</svg>
