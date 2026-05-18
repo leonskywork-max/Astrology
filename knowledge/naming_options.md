@@ -4,7 +4,22 @@
 
 ## Финальный выбор
 
-**Numen** (2026-05-18).
+**Бренд: Numen.**
+- **Канал:** `@heynumen` (в стиле Hey Mira)
+- **Бот:** `@numenapp` (классическая конвенция)
+
+Выбрано 2026-05-18 после 4 кругов проверки.
+
+## Важный урок: t.me HTML-stub vs fragment.com
+
+При первом проходе считал свободными все username, у которых t.me возвращает stub-страницу без `tgme_page_title`. **Это не точный признак** — короткие "красивые" имена выставлены на аукционе fragment.com и Telegram отказывает при попытке их занять с сообщением "Эта ссылка уже занята. В данный момент она выставлена на продажу".
+
+**Правильная двойная проверка:**
+1. `t.me/<username>` — занят, если есть `tgme_page_title`
+2. `fragment.com/username/<username>` — если статус "Available/Sold/Taken/For Sale" — нельзя занять обычным способом, только купить
+3. Реально свободен = НЕТ на fragment + НЕТ на t.me
+
+Финальная верификация всегда — через попытку создать канал в Telegram-приложении.
 
 ## Критерии
 
@@ -73,9 +88,25 @@
 - Звучит и пишется одинаково по-русски ("Нумен") и по-английски
 - Тон названия совпадает с TONE.md — не "Astra Magic" и не "Лунный путь"
 
+## Что было проверено за 4 круга
+
+**Круг 1** — 30 имён × 3 варианта (название, _bot, app) = 90 username, только t.me. Из 22 "FREE" по нашей методике почти все оказались на fragment (выявлено в круге 2).
+
+**Круг 2** — 30 имён, двойная проверка (t.me + fragment): @numinous, @animula, @caelum, @sidera, @vespera, @auspex, @lacrima, @praesto, @solstice, @astralis, @coronae, @nocturne, @celestia, @synapse, @resonant, @cerebral, @hieratic, @sublime, @astrolab, @skywatch, @starkit, @heartmap, @soulmap, @mooncode, @aurigram, @reverie, @quietus, @phantom, @glamour, @daimonia. Реально свободны: только **@hieratic** и **@phantom**.
+
+**Круг 3** — 31 имя в стиле составных и неологизмов: реально свободны @starscoop, @skygossip, @heycosmo, @heycomet, @shimmer, @numentime, @heynumen, @astrotell, @astropath, @asknumen.
+
+**Круг 4** — все варианты с корнем "numen" (бренд решено сохранить): свободны @heynumen, @asknumen, @usenumen, @numentime, @numen_ai, @numen_io, @numen_app, @numenapp, @getnumen, @numen_astro, @shownumen, @tellnumen, @rednumen, @numen_chat, @numen_now.
+
+Итого проверено около 150 username. Финальный выбор — пара @heynumen (канал) + @numenapp (бот).
+
 ## Запасной план
 
-Если по любой причине Numen окажется недоступен (на аукционе fragment.com, юридические претензии, не звучит при тестах) — берём в порядке Natal → Transit → Liminal.
+Если по любой причине @heynumen или @numenapp окажутся недоступны при попытке резервации:
+1. @asknumen + @numen_ai
+2. @numentime + @numen_app
+3. @usenumen + @numenapp
+4. Сменить бренд: купить @numen на fragment.com ($500–5000+)
 
 ## Что ещё надо сделать после выбора
 
