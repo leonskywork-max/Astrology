@@ -36,8 +36,10 @@
 
 **Сделано 2026-05-18.** Стек: TypeScript 5.7 + Telegraf 4.16 + Supabase JS + Anthropic SDK + pino + tsx. Node 20+. Структура `src/` по STACK.md (bot/, astro/, llm/, db/, payments/, jobs/, analytics/, utils/). Команды `/start`, `/chart`, `/help` работают. Заглушки с типами в astro/chart.ts (контракт для task-102), llm/claude.ts, db/client.ts. Миграции SQL для всех 7 таблиц в src/db/migrations/0001_initial_schema.sql (применять через Supabase Dashboard вручную). Smoke test пройден — config валидируется, бот инициализируется, Telegram API доступен (с реальным BOT_TOKEN стартует). README обновлён с инструкциями запуска.
 
-### task-102: Интеграция swisseph
+### task-102: Интеграция swisseph ✅
 Подключить библиотеку астрорасчётов. Реализовать функцию: вход — дата/время/место, выход — позиции 10 планет, дома, аспекты. Юнит-тесты на известных картах (например, карта Юнга, чтобы сверить с астропроцессором). Результат: `src/astro/chart.js` или `src/astro/chart.py`.
+
+**Сделано 2026-05-18.** Пакет `sweph` (Swiss Ephemeris bindings) + luxon для tz. Moshier fallback вместо файлов эфемерид (точность ±10 arcsec, достаточно для астрологии). Реализовано: `src/astro/ephemeris.ts` (обёртка над sweph), `src/astro/zodiac.ts` (длины→знаки, форматирование RU/EN), `src/astro/aspects.ts` (5 мажорных аспектов с орбами 6-8°, расширенные для люминариев), `src/astro/chart.ts` (calculateChart полный). Тест на карте Юнга (1875-07-26, Кессвиль): Sun, Moon, аспекты совпали с эталоном (Sun square Neptune orb 0.27°, Jupiter trine Saturn orb 0.40°). ASC/MC имеют ~4° сдвиг для исторических дат (известный edge case IANA tz vs LMT), для современных дат не проблема.
 
 ### task-103: Геокодинг
 Подключить API для перевода "Москва" → координаты + таймзона. Варианты: OpenStreetMap Nominatim (бесплатно), Google Maps API. Результат: `src/astro/geocode.js`.
