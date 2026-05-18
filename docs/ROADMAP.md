@@ -31,8 +31,10 @@
 
 ## Фаза 1. MVP бота
 
-### task-101: Скаффолдинг проекта
+### task-101: Скаффолдинг проекта ✅
 Создать `src/` со структурой: bot/, db/, astro/, llm/, payments/. Базовый Telegraf/aiogram, hello-world команды, подключение к БД, env-конфиг. Коммит после каждого добавленного модуля. Результат: рабочий бот, отвечающий на /start.
+
+**Сделано 2026-05-18.** Стек: TypeScript 5.7 + Telegraf 4.16 + Supabase JS + Anthropic SDK + pino + tsx. Node 20+. Структура `src/` по STACK.md (bot/, astro/, llm/, db/, payments/, jobs/, analytics/, utils/). Команды `/start`, `/chart`, `/help` работают. Заглушки с типами в astro/chart.ts (контракт для task-102), llm/claude.ts, db/client.ts. Миграции SQL для всех 7 таблиц в src/db/migrations/0001_initial_schema.sql (применять через Supabase Dashboard вручную). Smoke test пройден — config валидируется, бот инициализируется, Telegram API доступен (с реальным BOT_TOKEN стартует). README обновлён с инструкциями запуска.
 
 ### task-102: Интеграция swisseph
 Подключить библиотеку астрорасчётов. Реализовать функцию: вход — дата/время/место, выход — позиции 10 планет, дома, аспекты. Юнит-тесты на известных картах (например, карта Юнга, чтобы сверить с астропроцессором). Результат: `src/astro/chart.js` или `src/astro/chart.py`.

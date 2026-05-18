@@ -1,0 +1,30 @@
+{
+  "name": "numen",
+  "version": "0.1.0",
+  "description": "Numen — Telegram-бот персональной астрологии в стиле Co-Star для русскоязычной аудитории",
+  "private": true,
+  "type": "module",
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "dev": "tsx watch src/index.ts",
+    "start": "node --experimental-strip-types src/index.ts",
+    "build": "tsc --noEmit",
+    "typecheck": "tsc --noEmit",
+    "lint": "eslint src --ext .ts"
+  },
+  "dependencies": {
+    "@anthropic-ai/sdk": "^0.30.0",
+    "@supabase/supabase-js": "^2.45.0",
+    "dotenv": "^16.4.5",
+    "pino": "^9.5.0",
+    "pino-pretty": "^11.3.0",
+    "telegraf": "^4.16.3"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.0",
+    "tsx": "^4.19.2",
+    "typescript": "^5.7.2"
+  }
+}
