@@ -41,8 +41,10 @@
 
 **Сделано 2026-05-18.** Пакет `sweph` (Swiss Ephemeris bindings) + luxon для tz. Moshier fallback вместо файлов эфемерид (точность ±10 arcsec, достаточно для астрологии). Реализовано: `src/astro/ephemeris.ts` (обёртка над sweph), `src/astro/zodiac.ts` (длины→знаки, форматирование RU/EN), `src/astro/aspects.ts` (5 мажорных аспектов с орбами 6-8°, расширенные для люминариев), `src/astro/chart.ts` (calculateChart полный). Тест на карте Юнга (1875-07-26, Кессвиль): Sun, Moon, аспекты совпали с эталоном (Sun square Neptune orb 0.27°, Jupiter trine Saturn orb 0.40°). ASC/MC имеют ~4° сдвиг для исторических дат (известный edge case IANA tz vs LMT), для современных дат не проблема.
 
-### task-103: Геокодинг
+### task-103: Геокодинг ✅
 Подключить API для перевода "Москва" → координаты + таймзона. Варианты: OpenStreetMap Nominatim (бесплатно), Google Maps API. Результат: `src/astro/geocode.js`.
+
+**Сделано 2026-05-19.** `src/astro/geocode.ts` с OpenStreetMap Nominatim (бесплатно, без API ключа) + `tz-lookup` (статичная карта tz без API). User-Agent по ToS. AbortSignal.timeout 10s. Возвращает null если место не найдено, осмысленные ошибки при таймауте/non-200. Тест на 8 местах (Москва, Ковров, Питер, Владивосток, Тбилиси, Нью-Йорк, Kesswil, несуществующее) — все pass. Для production-масштабирования (>10K юзеров/день) добавить кеширование результатов в БД + fallback на Google Maps API.
 
 ### task-104: Онбординг
 Сценарий: /start → приветствие → дата → время → место → расчёт → первичный портрет. Состояние пользователя в БД. Результат: `src/bot/onboarding.js`.
