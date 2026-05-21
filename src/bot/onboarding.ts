@@ -14,12 +14,13 @@
  */
 
 import type { Context } from 'telegraf';
-import { calculateChart } from '../astro/chart.ts';
+import { calculateChart, type NatalChart } from '../astro/chart.ts';
 import { geocode, type GeocodingResult } from '../astro/geocode.ts';
-import { saveChart, getChart } from '../db/charts.ts';
+import { saveChart, getChart, savePortrait } from '../db/charts.ts';
 import { clearState, getState, setState, upsertUser } from '../db/users.ts';
 import { logger } from '../utils/logger.ts';
 import { features } from '../utils/config.ts';
+import { generateNatalPortrait } from '../llm/portrait.ts';
 import { parseBirthDate, parseBirthTime, parseYesNo } from './parsers.ts';
 import { formatBriefPortrait } from './portrait.ts';
 
@@ -239,8 +240,9 @@ async function handlePlaceConfirmation(
 
   await ctx.sendChatAction('typing');
 
+  let chart: NatalChart;
   try {
-    const chart = await calculateChart({
+    chart = await calculateChart({
       birthDate,
       birthTime,
       latitude: geocoded.latitude,
@@ -267,7 +269,54 @@ async function handlePlaceConfirmation(
       `Что-то сломалось при расчёте — это редко, но бывает. Напиши /chart и пройдём заново.`,
     );
     await clearState(ctx.from!.id);
+    return true;
+  }
+
+  // Полный портрет через LLM — асинхронно. Сначала юзер видит краткий (выше),
+  // потом через 10-30 сек прилетает полноценный разбор. Если LLM упадёт —
+  // не страшно, у юзера всё равно есть краткий.
+  if (features.llm) {
+    generateAndSendPortrait(ctx, chart).catch((err) => {
+      logger.error(
+        { err: err instanceof Error ? err.message : err, userId: ctx.from?.id },
+        'LLM portrait generation failed (non-fatal)',
+      );
+    });
   }
 
   return true;
+}
+
+/**
+ * Асинхронная генерация полного портрета через LLM и отправка юзеру.
+ * Запускается после краткого портрета. Ошибки не критичны — у юзера уже есть базовый ответ.
+ */
+async function generateAndSendPortrait(ctx: Context, chart: NatalChart): Promise<void> {
+  const userId = ctx.from?.id;
+  if (!userId) return;
+
+  await ctx.sendChatAction('typing');
+
+  const userName = ctx.from?.first_name ?? undefined;
+
+  const portraitText = await generateNatalPortrait({
+    chart,
+    userName,
+    // TODO: спрашивать пол при онбординге. Пока default 'female' (главная ЦА)
+    userGender: 'female',
+  });
+
+  await savePortrait(userId, portraitText);
+
+  await ctx.replyWithHTML(
+    `<b>Полный портрет</b>\n\n${escapeHtml(portraitText)}`,
+  );
+}
+
+/** Минимальный HTML-escape для текста от LLM перед replyWithHTML. */
+function escapeHtml(text: string): string {
+  return text
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;');
 }
