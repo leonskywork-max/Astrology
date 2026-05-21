@@ -288,8 +288,12 @@ async function handlePlaceConfirmation(
 }
 
 /**
- * Асинхронная генерация полного портрета через LLM и отправка юзеру.
- * Запускается после краткого портрета. Ошибки не критичны — у юзера уже есть базовый ответ.
+ * Асинхронная генерация полного портрета через LLM и отправка юзеру
+ * тремя сообщениями с эффектом «печатает» между ними. Это даёт ощущение
+ * что бот живой и реально думает, вместо одной простыни сразу.
+ *
+ * Запускается после краткого портрета. Ошибки не критичны — у юзера уже
+ * есть базовый ответ от formatBriefPortrait.
  */
 async function generateAndSendPortrait(ctx: Context, chart: NatalChart): Promise<void> {
   const userId = ctx.from?.id;
@@ -308,9 +312,43 @@ async function generateAndSendPortrait(ctx: Context, chart: NatalChart): Promise
 
   await savePortrait(userId, portraitText);
 
-  await ctx.replyWithHTML(
-    `<b>Полный портрет</b>\n\n${escapeHtml(portraitText)}`,
-  );
+  const chunks = splitIntoChunks(portraitText, 3);
+
+  for (let i = 0; i < chunks.length; i++) {
+    const prefix = i === 0 ? '<b>Теперь полный портрет</b>\n\n' : '';
+    await ctx.replyWithHTML(prefix + escapeHtml(chunks[i]!));
+
+    // Между сообщениями — typing-эффект 5 секунд, кроме после последнего
+    if (i < chunks.length - 1) {
+      await ctx.sendChatAction('typing');
+      await sleep(5_000);
+    }
+  }
+}
+
+/**
+ * Разбивает текст на N примерно равных частей по границам абзацев.
+ * Сохраняет логическую целостность — не режет посреди фразы.
+ */
+function splitIntoChunks(text: string, n: number): string[] {
+  const paragraphs = text.split(/\n\s*\n/).map((p) => p.trim()).filter(Boolean);
+
+  // Если абзацев меньше n — раздать по одному, остальные пустые игнорируем
+  if (paragraphs.length <= n) {
+    return paragraphs;
+  }
+
+  // Равномерно распределить абзацы по N группам
+  const targetSize = Math.ceil(paragraphs.length / n);
+  const chunks: string[] = [];
+  for (let i = 0; i < paragraphs.length; i += targetSize) {
+    chunks.push(paragraphs.slice(i, i + targetSize).join('\n\n'));
+  }
+  return chunks;
+}
+
+function sleep(ms: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
 /** Минимальный HTML-escape для текста от LLM перед replyWithHTML. */
