@@ -14,12 +14,13 @@
  */
 
 import type { Context } from 'telegraf';
-import { calculateChart } from '../astro/chart.ts';
+import { calculateChart, type NatalChart } from '../astro/chart.ts';
 import { geocode, type GeocodingResult } from '../astro/geocode.ts';
-import { saveChart, getChart } from '../db/charts.ts';
+import { saveChart, getChart, savePortrait } from '../db/charts.ts';
 import { clearState, getState, setState, upsertUser } from '../db/users.ts';
 import { logger } from '../utils/logger.ts';
 import { features } from '../utils/config.ts';
+import { generateNatalPortrait } from '../llm/portrait.ts';
 import { parseBirthDate, parseBirthTime, parseYesNo } from './parsers.ts';
 import { formatBriefPortrait } from './portrait.ts';
 
@@ -77,10 +78,18 @@ export async function handleChart(ctx: Context): Promise<void> {
 
   const existing = await getChart(ctx.from.id);
   if (existing) {
-    await ctx.replyWithHTML(
-      `Твоя карта уже у меня: <b>${existing.birth_date}</b>, ${existing.birth_place}.\n\n` +
-        `Если что-то перепутала и хочешь пересчитать — напиши /resetchart, потом /chart снова.`,
-    );
+    const hasPortrait = Boolean(existing.portrait_text);
+    const lines = [
+      `Твоя карта уже у меня: <b>${existing.birth_date}</b>, ${existing.birth_place}.`,
+      '',
+    ];
+    if (hasPortrait) {
+      lines.push('Хочешь посмотреть полный портрет ещё раз — /portrait.');
+    } else {
+      lines.push('Я ещё не делала тебе полного портрета — напиши /portrait, и я сгенерирую его сейчас.');
+    }
+    lines.push('Если данные неверные и нужно пересчитать с нуля — /resetchart, потом /chart.');
+    await ctx.replyWithHTML(lines.join('\n'));
     return;
   }
 
@@ -96,6 +105,79 @@ export async function handleReset(ctx: Context): Promise<void> {
   if (!features.supabase || !ctx.from) return;
   await clearState(ctx.from.id);
   await ctx.replyWithHTML('Сбросила. Напиши /chart и пройдём заново.');
+}
+
+/**
+ * /portrait — показать полный портрет на сохранённой карте.
+ * Если портрет уже есть в БД — отдаём его (трёмя частями с typing).
+ * Если нет — генерируем через LLM прямо сейчас.
+ */
+export async function handlePortrait(ctx: Context): Promise<void> {
+  if (!features.supabase || !ctx.from) return;
+  if (!features.llm) {
+    await ctx.replyWithHTML(
+      'Полные портреты пока недоступны — LLM не настроен. Команда заработает скоро.',
+    );
+    return;
+  }
+
+  const chart = await getChart(ctx.from.id);
+  if (!chart) {
+    await ctx.replyWithHTML(
+      'У меня пока нет твоей карты. Напиши /chart, чтобы её собрать.',
+    );
+    return;
+  }
+
+  // Если портрет уже сохранён — отдаём его, не зовём LLM повторно
+  if (chart.portrait_text) {
+    await sendPortraitInChunks(ctx, chart.portrait_text, 'Твой портрет:');
+    return;
+  }
+
+  // Иначе — генерируем
+  await ctx.replyWithHTML('Сейчас соберу для тебя портрет — это занимает несколько секунд.');
+  await ctx.sendChatAction('typing');
+
+  try {
+    const portraitText = await generateNatalPortrait({
+      chart: chart.chart_data,
+      userName: ctx.from.first_name ?? undefined,
+      userGender: 'female', // TODO: спрашивать при онбординге
+    });
+    await savePortrait(ctx.from.id, portraitText);
+    await sendPortraitInChunks(ctx, portraitText, 'Готово. Вот что у тебя в карте:');
+  } catch (err) {
+    logger.error(
+      { err: err instanceof Error ? err.message : err, userId: ctx.from.id },
+      'Portrait generation failed',
+    );
+    await ctx.replyWithHTML(
+      'LLM сейчас не отвечает — попробуй через минуту, напиши /portrait снова.',
+    );
+  }
+}
+
+/**
+ * Отправляет длинный текст портрета тремя сообщениями с typing-эффектом
+ * и паузой между ними. Используется и в онбординге, и в /portrait.
+ */
+async function sendPortraitInChunks(
+  ctx: Context,
+  portraitText: string,
+  firstPrefix: string,
+): Promise<void> {
+  const chunks = splitIntoChunks(portraitText, 3);
+
+  for (let i = 0; i < chunks.length; i++) {
+    const prefix = i === 0 ? `<b>${escapeHtml(firstPrefix)}</b>\n\n` : '';
+    await ctx.replyWithHTML(prefix + escapeHtml(chunks[i]!));
+
+    if (i < chunks.length - 1) {
+      await ctx.sendChatAction('typing');
+      await sleep(5_000);
+    }
+  }
 }
 
 /**
@@ -239,8 +321,9 @@ async function handlePlaceConfirmation(
 
   await ctx.sendChatAction('typing');
 
+  let chart: NatalChart;
   try {
-    const chart = await calculateChart({
+    chart = await calculateChart({
       birthDate,
       birthTime,
       latitude: geocoded.latitude,
@@ -267,7 +350,80 @@ async function handlePlaceConfirmation(
       `Что-то сломалось при расчёте — это редко, но бывает. Напиши /chart и пройдём заново.`,
     );
     await clearState(ctx.from!.id);
+    return true;
+  }
+
+  // Полный портрет через LLM — асинхронно. Сначала юзер видит краткий (выше),
+  // потом через 10-30 сек прилетает полноценный разбор. Если LLM упадёт —
+  // не страшно, у юзера всё равно есть краткий.
+  if (features.llm) {
+    generateAndSendPortrait(ctx, chart).catch((err) => {
+      logger.error(
+        { err: err instanceof Error ? err.message : err, userId: ctx.from?.id },
+        'LLM portrait generation failed (non-fatal)',
+      );
+    });
   }
 
   return true;
+}
+
+/**
+ * Асинхронная генерация полного портрета через LLM и отправка юзеру
+ * тремя сообщениями с эффектом «печатает» между ними. Это даёт ощущение
+ * что бот живой и реально думает, вместо одной простыни сразу.
+ *
+ * Запускается после краткого портрета. Ошибки не критичны — у юзера уже
+ * есть базовый ответ от formatBriefPortrait.
+ */
+async function generateAndSendPortrait(ctx: Context, chart: NatalChart): Promise<void> {
+  const userId = ctx.from?.id;
+  if (!userId) return;
+
+  await ctx.sendChatAction('typing');
+
+  const userName = ctx.from?.first_name ?? undefined;
+
+  const portraitText = await generateNatalPortrait({
+    chart,
+    userName,
+    // TODO: спрашивать пол при онбординге. Пока default 'female' (главная ЦА)
+    userGender: 'female',
+  });
+
+  await savePortrait(userId, portraitText);
+  await sendPortraitInChunks(ctx, portraitText, 'Теперь полный портрет');
+}
+
+/**
+ * Разбивает текст на N примерно равных частей по границам абзацев.
+ * Сохраняет логическую целостность — не режет посреди фразы.
+ */
+function splitIntoChunks(text: string, n: number): string[] {
+  const paragraphs = text.split(/\n\s*\n/).map((p) => p.trim()).filter(Boolean);
+
+  // Если абзацев меньше n — раздать по одному, остальные пустые игнорируем
+  if (paragraphs.length <= n) {
+    return paragraphs;
+  }
+
+  // Равномерно распределить абзацы по N группам
+  const targetSize = Math.ceil(paragraphs.length / n);
+  const chunks: string[] = [];
+  for (let i = 0; i < paragraphs.length; i += targetSize) {
+    chunks.push(paragraphs.slice(i, i + targetSize).join('\n\n'));
+  }
+  return chunks;
+}
+
+function sleep(ms: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+/** Минимальный HTML-escape для текста от LLM перед replyWithHTML. */
+function escapeHtml(text: string): string {
+  return text
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;');
 }

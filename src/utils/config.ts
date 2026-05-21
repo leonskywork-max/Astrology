@@ -41,6 +41,14 @@ export const config = {
     adminChatId: optional('ADMIN_CHAT_ID'),
   },
 
+  llm: {
+    provider: optional('LLM_PROVIDER', 'gemini') as 'gemini' | 'anthropic',
+  },
+
+  gemini: {
+    apiKey: optionalSecret('GEMINI_API_KEY'),
+  },
+
   anthropic: {
     apiKey: optionalSecret('ANTHROPIC_API_KEY'),
   },
@@ -68,7 +76,9 @@ export const isProduction = config.env === 'production';
 export const isDevelopment = config.env === 'development';
 
 export const features = {
+  gemini: Boolean(config.gemini.apiKey),
   anthropic: Boolean(config.anthropic.apiKey),
+  llm: Boolean(config.gemini.apiKey) || Boolean(config.anthropic.apiKey),
   supabase: Boolean(config.supabase.url && config.supabase.serviceKey),
   payments: Boolean(config.payments.yookassaShopId && config.payments.yookassaSecretKey),
 } as const;
