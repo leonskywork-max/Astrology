@@ -78,10 +78,18 @@ export async function handleChart(ctx: Context): Promise<void> {
 
   const existing = await getChart(ctx.from.id);
   if (existing) {
-    await ctx.replyWithHTML(
-      `Твоя карта уже у меня: <b>${existing.birth_date}</b>, ${existing.birth_place}.\n\n` +
-        `Если что-то перепутала и хочешь пересчитать — напиши /resetchart, потом /chart снова.`,
-    );
+    const hasPortrait = Boolean(existing.portrait_text);
+    const lines = [
+      `Твоя карта уже у меня: <b>${existing.birth_date}</b>, ${existing.birth_place}.`,
+      '',
+    ];
+    if (hasPortrait) {
+      lines.push('Хочешь посмотреть полный портрет ещё раз — /portrait.');
+    } else {
+      lines.push('Я ещё не делала тебе полного портрета — напиши /portrait, и я сгенерирую его сейчас.');
+    }
+    lines.push('Если данные неверные и нужно пересчитать с нуля — /resetchart, потом /chart.');
+    await ctx.replyWithHTML(lines.join('\n'));
     return;
   }
 
@@ -97,6 +105,79 @@ export async function handleReset(ctx: Context): Promise<void> {
   if (!features.supabase || !ctx.from) return;
   await clearState(ctx.from.id);
   await ctx.replyWithHTML('Сбросила. Напиши /chart и пройдём заново.');
+}
+
+/**
+ * /portrait — показать полный портрет на сохранённой карте.
+ * Если портрет уже есть в БД — отдаём его (трёмя частями с typing).
+ * Если нет — генерируем через LLM прямо сейчас.
+ */
+export async function handlePortrait(ctx: Context): Promise<void> {
+  if (!features.supabase || !ctx.from) return;
+  if (!features.llm) {
+    await ctx.replyWithHTML(
+      'Полные портреты пока недоступны — LLM не настроен. Команда заработает скоро.',
+    );
+    return;
+  }
+
+  const chart = await getChart(ctx.from.id);
+  if (!chart) {
+    await ctx.replyWithHTML(
+      'У меня пока нет твоей карты. Напиши /chart, чтобы её собрать.',
+    );
+    return;
+  }
+
+  // Если портрет уже сохранён — отдаём его, не зовём LLM повторно
+  if (chart.portrait_text) {
+    await sendPortraitInChunks(ctx, chart.portrait_text, 'Твой портрет:');
+    return;
+  }
+
+  // Иначе — генерируем
+  await ctx.replyWithHTML('Сейчас соберу для тебя портрет — это занимает несколько секунд.');
+  await ctx.sendChatAction('typing');
+
+  try {
+    const portraitText = await generateNatalPortrait({
+      chart: chart.chart_data,
+      userName: ctx.from.first_name ?? undefined,
+      userGender: 'female', // TODO: спрашивать при онбординге
+    });
+    await savePortrait(ctx.from.id, portraitText);
+    await sendPortraitInChunks(ctx, portraitText, 'Готово. Вот что у тебя в карте:');
+  } catch (err) {
+    logger.error(
+      { err: err instanceof Error ? err.message : err, userId: ctx.from.id },
+      'Portrait generation failed',
+    );
+    await ctx.replyWithHTML(
+      'LLM сейчас не отвечает — попробуй через минуту, напиши /portrait снова.',
+    );
+  }
+}
+
+/**
+ * Отправляет длинный текст портрета тремя сообщениями с typing-эффектом
+ * и паузой между ними. Используется и в онбординге, и в /portrait.
+ */
+async function sendPortraitInChunks(
+  ctx: Context,
+  portraitText: string,
+  firstPrefix: string,
+): Promise<void> {
+  const chunks = splitIntoChunks(portraitText, 3);
+
+  for (let i = 0; i < chunks.length; i++) {
+    const prefix = i === 0 ? `<b>${escapeHtml(firstPrefix)}</b>\n\n` : '';
+    await ctx.replyWithHTML(prefix + escapeHtml(chunks[i]!));
+
+    if (i < chunks.length - 1) {
+      await ctx.sendChatAction('typing');
+      await sleep(5_000);
+    }
+  }
 }
 
 /**
@@ -311,19 +392,7 @@ async function generateAndSendPortrait(ctx: Context, chart: NatalChart): Promise
   });
 
   await savePortrait(userId, portraitText);
-
-  const chunks = splitIntoChunks(portraitText, 3);
-
-  for (let i = 0; i < chunks.length; i++) {
-    const prefix = i === 0 ? '<b>Теперь полный портрет</b>\n\n' : '';
-    await ctx.replyWithHTML(prefix + escapeHtml(chunks[i]!));
-
-    // Между сообщениями — typing-эффект 5 секунд, кроме после последнего
-    if (i < chunks.length - 1) {
-      await ctx.sendChatAction('typing');
-      await sleep(5_000);
-    }
-  }
+  await sendPortraitInChunks(ctx, portraitText, 'Теперь полный портрет');
 }
 
 /**

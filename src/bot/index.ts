@@ -5,6 +5,7 @@ import { logger } from '../utils/logger.ts';
 import {
   handleChart,
   handleOnboardingText,
+  handlePortrait,
   handleReset,
   handleStart,
 } from './onboarding.ts';
@@ -14,6 +15,7 @@ export function createBot(): Telegraf {
 
   bot.start(handleStart);
   bot.command('chart', handleChart);
+  bot.command('portrait', handlePortrait);
   bot.command('resetchart', handleReset);
 
   bot.command('help', async (ctx) => {
@@ -21,9 +23,10 @@ export function createBot(): Telegraf {
       `<b>Команды Numen:</b>\n\n` +
         `/start — приветствие\n` +
         `/chart — собрать натальную карту\n` +
-        `/resetchart — сбросить состояние онбординга\n` +
+        `/portrait — полный портрет по твоей карте\n` +
+        `/resetchart — сбросить и собрать карту заново\n` +
         `/help — это сообщение\n\n` +
-        `<i>Больше команд появится по мере разработки.</i>`,
+        `<i>Скоро: карта Таро дня, гороскоп дня, синастрия с партнёром.</i>`,
     );
   });
 
