@@ -1,8 +1,13 @@
 /**
  * Краткий шаблонный портрет на основе натальной карты — без LLM.
  *
- * Используется после онбординга, чтобы пользователь сразу увидел результат.
- * Полный психологический портрет в фирменном тоне (через LLM) — task-105 + task-109.
+ * Используется сразу после онбординга — это первое впечатление от продукта,
+ * пока полноценный портрет через LLM (task-105 + task-109) ещё не подключён.
+ *
+ * Тон — Олеся-стиль (см. prompts/TONE.md): тёплый разговорный, объясняем
+ * термины при первом упоминании, серьёзно про астрологию + лёгкая
+ * самоирония. Никаких "энергий", никаких токсичных ярлыков типа
+ * "ты Скорпион — значит ревнивая".
  */
 
 import type { NatalChart } from '../astro/chart.ts';
@@ -11,34 +16,52 @@ import { formatPosition, ZODIAC_SIGNS_RU } from '../astro/zodiac.ts';
 export function formatBriefPortrait(chart: NatalChart): string {
   const lines: string[] = [];
 
-  lines.push('<b>Готово. Твоя карта собрана.</b>');
+  const sunRu = ZODIAC_SIGNS_RU[chart.sun.sign];
+  const moonRu = ZODIAC_SIGNS_RU[chart.moon.sign];
+
+  lines.push('<b>Готово. Карта собрана.</b>');
   lines.push('');
-
-  lines.push(`<b>Солнце</b> — ${formatPosition(chart.sun.longitude)}`);
-  lines.push(`<b>Луна</b> — ${formatPosition(chart.moon.longitude)}`);
-
-  if (chart.timeAccurate) {
-    lines.push(`<b>Восход</b> — ${formatPosition(chart.ascendant.longitude)}`);
-  } else {
-    lines.push('<i>Восход не рассчитан — без точного времени рождения его не определить.</i>');
-  }
-
-  lines.push('');
-
-  const sunSignRu = ZODIAC_SIGNS_RU[chart.sun.sign];
-  const moonSignRu = ZODIAC_SIGNS_RU[chart.moon.sign];
-
   lines.push(
-    `Базовый каркас: <b>${sunSignRu}</b> по сути, <b>${moonSignRu}</b> по внутренней температуре.`,
+    'Сейчас покажу три главные точки из всех двенадцати. Из них уже видно процентов 60 характера — остальное в полном разборе, до него ещё дойдём.',
   );
+  lines.push('');
+
+  lines.push(`<b>☉ Солнце — ${formatPosition(chart.sun.longitude)}</b>`);
+  lines.push(
+    `То, кем ты сознательно становишься. Куда тянет твоё «я» в самые честные моменты. В твоём случае — ${sunRu}.`,
+  );
+  lines.push('');
+
+  lines.push(`<b>☽ Луна — ${formatPosition(chart.moon.longitude)}</b>`);
+  lines.push(
+    `Эмоциональная база. Что тебе нужно, чтобы внутри было спокойно. Это уже не про то, как ты выглядишь снаружи, а про то, что у тебя внутри происходит, когда никто не смотрит.`,
+  );
+  lines.push('');
 
   if (chart.timeAccurate) {
-    const ascSignRu = ZODIAC_SIGNS_RU[chart.ascendant.sign];
-    lines.push(`На внешнем уровне ты <b>${ascSignRu}</b> — то, как тебя видят с первой минуты.`);
+    const ascRu = ZODIAC_SIGNS_RU[chart.ascendant.sign];
+    lines.push(`<b>↑ Восход — ${formatPosition(chart.ascendant.longitude)}</b>`);
+    lines.push(
+      'То, как ты заходишь в мир. Что считывают другие в первые минуты знакомства — ещё до того, как ты успела сказать пару слов.',
+    );
+    lines.push('');
+    lines.push(
+      `В двух словах: по сути ты <b>${sunRu}</b>, внутри у тебя <b>${moonRu}</b>, а в мир заходишь как <b>${ascRu}</b>. Это уже сильно больше, чем привычное «я Овен» или «я Дева» — три разных слоя характера, каждый отвечает за своё.`,
+    );
+  } else {
+    lines.push(
+      '<i>Восход (то, как тебя видят в первую минуту) посчитать не получилось — для этого нужно точное время рождения. Если узнаешь — напиши /resetchart и пройди заново, добавлю слой.</i>',
+    );
+    lines.push('');
+    lines.push(
+      `В двух словах: по сути ты <b>${sunRu}</b>, а внутри у тебя <b>${moonRu}</b>. Это уже больше, чем «я Овен» или «я Дева» — два разных слоя характера.`,
+    );
   }
 
   lines.push('');
-  lines.push('<i>Полный психологический портрет на основе всех 10 планет и аспектов — премиум-функция. Пока в разработке.</i>');
+  lines.push(
+    '<i>Дальше — разбор по всем десяти планетам и по сферам жизни: любовь, работа, тело, деньги. Это следующий шаг, скоро запущу.</i>',
+  );
 
   return lines.join('\n');
 }
