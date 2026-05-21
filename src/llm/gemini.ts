@@ -14,9 +14,17 @@ import type { GenerateOptions, GenerateResult, LlmClient, ModelTier } from './cl
  * Маппинг наших тиров на конкретные модели Gemini.
  * Меняется в одном месте при апгрейде моделей.
  */
+/**
+ * Free tier ограничения (на 2026-05):
+ * - gemini-2.5-pro: НЕДОСТУПЕН в free tier (limit: 0)
+ * - gemini-2.5-flash: 10 req/min, 250 req/day — хорошее качество, наш quality
+ * - gemini-2.5-flash-lite: 15 req/min, 1000 req/day — для массовых задач
+ *
+ * Если в будущем перейдём на paid — обновить quality на 2.5-pro.
+ */
 const MODEL_BY_TIER: Record<ModelTier, string> = {
-  quality: 'gemini-2.5-pro',
-  fast: 'gemini-2.0-flash',
+  quality: 'gemini-2.5-flash',
+  fast: 'gemini-2.5-flash-lite',
 };
 
 const DEFAULT_TEMPERATURE: Record<ModelTier, number> = {
@@ -24,9 +32,17 @@ const DEFAULT_TEMPERATURE: Record<ModelTier, number> = {
   fast: 0.9,
 };
 
+/**
+ * ВАЖНО для Gemini 2.5: эти модели имеют thinking-режим,
+ * который расходует часть maxOutputTokens на reasoning.
+ * Для креативного письма thinking не нужен — отключаем через
+ * thinkingConfig.thinkingBudget = 0 ниже.
+ *
+ * Эти числа = чистый ответ (без thinking budget).
+ */
 const DEFAULT_MAX_TOKENS: Record<ModelTier, number> = {
-  quality: 2500,
-  fast: 500,
+  quality: 4000,
+  fast: 800,
 };
 
 export function createGeminiClient(): LlmClient {
@@ -45,7 +61,11 @@ export function createGeminiClient(): LlmClient {
         generationConfig: {
           temperature,
           maxOutputTokens,
-        },
+          // Отключаем thinking — задача креативная, reasoning не нужен.
+          // Это значит весь maxOutputTokens идёт на сам ответ.
+          // SDK тип может не знать про thinkingConfig (новое поле) — приводим к any.
+          thinkingConfig: { thinkingBudget: 0 },
+        } as unknown as Parameters<typeof genAI.getGenerativeModel>[0]['generationConfig'],
       });
 
       const startedAt = Date.now();
