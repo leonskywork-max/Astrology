@@ -34,13 +34,13 @@ type OnboardingState =
       geocoded: GeocodingResult;
     };
 
-const WELCOME = `<b>Numen.</b>
+const WELCOME = `<b>Numen.</b> Это про натальную карту.
 
-Не астролог. Не гадалка. Скорее наблюдатель с хорошим прицелом.
+Натальная карта — не гадание и не Таро. Это расчёт того, как стояли планеты в момент твоего рождения. Из этой картинки видно особенности характера, как ты строишь отношения, что даётся легко, что — через сопротивление.
 
-Чтобы что-то полезное про тебя сказать — нужна твоя натальная карта. Это про дату, время и место рождения. Без них всё, что я могу — это общие гороскопы про знаки, а они мало что про тебя говорят.
+Чтобы её посчитать, нужно три вещи: <b>дата рождения</b>, <b>точное время</b> (или хотя бы примерное) и <b>город</b>, где это было.
 
-Готова? Напиши /chart, и пойдём по шагам.`;
+Готов(а)? Напиши /chart — пойдём по шагам.`;
 
 const NO_DB_FALLBACK = `<i>Бот в режиме демо: БД не подключена.</i>
 
@@ -78,16 +78,16 @@ export async function handleChart(ctx: Context): Promise<void> {
   const existing = await getChart(ctx.from.id);
   if (existing) {
     await ctx.replyWithHTML(
-      `Твоя карта уже сохранена: <b>${existing.birth_date}</b>, ${existing.birth_place}.\n\n` +
-        `Если хочешь её пересчитать — напиши /resetchart, потом /chart снова.`,
+      `Твоя карта уже у меня: <b>${existing.birth_date}</b>, ${existing.birth_place}.\n\n` +
+        `Если что-то перепутала и хочешь пересчитать — напиши /resetchart, потом /chart снова.`,
     );
     return;
   }
 
   await setState(ctx.from.id, { step: 'awaiting_date' } satisfies OnboardingState);
   await ctx.replyWithHTML(
-    `<b>Шаг 1/3 — дата рождения.</b>\n\n` +
-      `Пришли в любом формате:\n` +
+    `<b>Шаг 1 из 3 — дата рождения.</b>\n\n` +
+      `Пришли в любом удобном формате — я разберу:\n` +
       `<code>15.03.1990</code>  или  <code>1990-03-15</code>  или  <code>15/03/1990</code>`,
   );
 }
@@ -95,7 +95,7 @@ export async function handleChart(ctx: Context): Promise<void> {
 export async function handleReset(ctx: Context): Promise<void> {
   if (!features.supabase || !ctx.from) return;
   await clearState(ctx.from.id);
-  await ctx.replyWithHTML('Состояние сброшено. Напиши /chart, чтобы начать заново.');
+  await ctx.replyWithHTML('Сбросила. Напиши /chart и пройдём заново.');
 }
 
 /**
@@ -124,7 +124,7 @@ async function handleDateInput(ctx: Context, text: string): Promise<boolean> {
   const date = parseBirthDate(text);
   if (!date) {
     await ctx.replyWithHTML(
-      `Не разобрал дату. Пример: <code>15.03.1990</code>`,
+      `Не получилось разобрать дату. Попробуй так: <code>15.03.1990</code>`,
     );
     return true;
   }
@@ -133,9 +133,9 @@ async function handleDateInput(ctx: Context, text: string): Promise<boolean> {
     birthDate: date,
   } satisfies OnboardingState);
   await ctx.replyWithHTML(
-    `<b>Шаг 2/3 — время рождения.</b>\n\n` +
-      `Пришли в формате <code>12:30</code>. ` +
-      `Если не знаешь — напиши <code>не знаю</code>, но тогда не смогу посчитать восход и дома.`,
+    `<b>Шаг 2 из 3 — время рождения.</b>\n\n` +
+      `Если знаешь точно — пришли в формате <code>12:30</code>. ` +
+      `Если нет — напиши <code>не знаю</code>, посчитаю что смогу (Восход и дома без точного времени не получаются, но Солнце и Луна — да).`,
   );
   return true;
 }
@@ -148,7 +148,7 @@ async function handleTimeInput(
   const time = parseBirthTime(text);
   if (time === 'invalid') {
     await ctx.replyWithHTML(
-      `Не разобрал время. Пример: <code>12:30</code>. Или напиши <code>не знаю</code>.`,
+      `Не получилось разобрать время. Попробуй <code>12:30</code>, или напиши <code>не знаю</code>.`,
     );
     return true;
   }
@@ -158,9 +158,9 @@ async function handleTimeInput(
     birthTime: time,
   } satisfies OnboardingState);
   await ctx.replyWithHTML(
-    `<b>Шаг 3/3 — место рождения.</b>\n\n` +
-      `Напиши город. Можно с уточнением страны, если есть несколько городов с одним названием:\n` +
-      `<code>Москва</code>  или  <code>Владимир</code>  или  <code>Casablanca, Marocco</code>`,
+    `<b>Шаг 3 из 3 — место рождения.</b>\n\n` +
+      `Напиши город. Если городов с таким названием несколько (привет, Владимир и Ростов) — добавь страну для точности:\n` +
+      `<code>Москва</code>  или  <code>Владимир, Россия</code>  или  <code>Casablanca, Morocco</code>`,
   );
   return true;
 }
@@ -173,7 +173,7 @@ async function handlePlaceInput(
 ): Promise<boolean> {
   const place = text.trim();
   if (place.length < 2) {
-    await ctx.replyWithHTML('Название места слишком короткое. Попробуй ещё раз.');
+    await ctx.replyWithHTML('Название слишком короткое — попробуй ещё раз.');
     return true;
   }
 
@@ -183,15 +183,15 @@ async function handlePlaceInput(
   } catch (err) {
     logger.error({ err, place }, 'Geocoding failed');
     await ctx.replyWithHTML(
-      `Сервис геокодинга временно недоступен. Попробуй через минуту.`,
+      `Сервис, который ищет координаты, сейчас не отвечает. Попробуй через минуту — обычно отпускает быстро.`,
     );
     return true;
   }
 
   if (!geocoded) {
     await ctx.replyWithHTML(
-      `Не нашёл такое место. Попробуй уточнить — добавь страну или название региона.\n\n` +
-        `Например: <code>Владимир, Россия</code>`,
+      `Не нашла такое место. Попробуй уточнить — добавь страну или регион.\n\n` +
+        `Например: <code>Владимир, Россия</code> или <code>Ростов-на-Дону</code>`,
     );
     return true;
   }
@@ -204,7 +204,7 @@ async function handlePlaceInput(
   } satisfies OnboardingState);
 
   await ctx.replyWithHTML(
-    `Нашёл: <b>${geocoded.displayName}</b>\n` +
+    `Нашла: <b>${geocoded.displayName}</b>\n` +
       `<i>Таймзона: ${geocoded.timezone}</i>\n\n` +
       `Это то место? Напиши <code>да</code> или <code>нет</code>.`,
   );
@@ -218,7 +218,7 @@ async function handlePlaceConfirmation(
 ): Promise<boolean> {
   const answer = parseYesNo(text);
   if (answer === null) {
-    await ctx.replyWithHTML('Не понял ответ. Напиши <code>да</code> или <code>нет</code>.');
+    await ctx.replyWithHTML('Не поняла ответ. Напиши просто <code>да</code> или <code>нет</code>.');
     return true;
   }
 
@@ -229,7 +229,7 @@ async function handlePlaceConfirmation(
       birthTime: state.birthTime,
     } satisfies OnboardingState);
     await ctx.replyWithHTML(
-      'Понял. Напиши место ещё раз — добавь страну или регион для точности.',
+      'Поняла. Напиши место ещё раз — лучше с уточнением страны или региона.',
     );
     return true;
   }
@@ -264,7 +264,7 @@ async function handlePlaceConfirmation(
   } catch (err) {
     logger.error({ err, userId: ctx.from?.id }, 'Chart calculation/save failed');
     await ctx.replyWithHTML(
-      `Что-то пошло не так при расчёте карты. Попробуй ещё раз через /chart.`,
+      `Что-то сломалось при расчёте — это редко, но бывает. Напиши /chart и пройдём заново.`,
     );
     await clearState(ctx.from!.id);
   }
