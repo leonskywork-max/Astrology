@@ -9,6 +9,8 @@ import {
   handleReset,
   handleStart,
 } from './onboarding.ts';
+import { handleTarot } from './tarot.ts';
+import { handleToday } from './horoscope.ts';
 
 export function createBot(): Telegraf {
   const bot = new Telegraf(config.telegram.botToken);
@@ -16,6 +18,8 @@ export function createBot(): Telegraf {
   bot.start(handleStart);
   bot.command('chart', handleChart);
   bot.command('portrait', handlePortrait);
+  bot.command('tarot', handleTarot);
+  bot.command('today', handleToday);
   bot.command('resetchart', handleReset);
 
   bot.command('help', async (ctx) => {
@@ -24,9 +28,11 @@ export function createBot(): Telegraf {
         `/start — приветствие\n` +
         `/chart — собрать натальную карту\n` +
         `/portrait — полный портрет по твоей карте\n` +
+        `/tarot — карта Таро дня\n` +
+        `/today — гороскоп дня по твоему знаку\n` +
         `/resetchart — сбросить и собрать карту заново\n` +
         `/help — это сообщение\n\n` +
-        `<i>Скоро: карта Таро дня, гороскоп дня, синастрия с партнёром.</i>`,
+        `<i>Скоро: синастрия с партнёром (виральная функция).</i>`,
     );
   });
 
